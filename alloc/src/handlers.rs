@@ -14,26 +14,24 @@
 // You should have received a copy of the GNU General Public License
 // along with ink!.  If not, see <http://www.gnu.org/licenses/>.
 
-use core::{
-    alloc::Layout,
-    panic::PanicInfo,
-};
+/// Abortion in `no_std` Rust wihtout unwinding or touching the panic
+/// infrastructure is not yet stable.
+///
+/// # Note
+///
+/// This is an attempt at a forced panic due to division by zero
+/// that the compiler cannot reason about.
+fn abort() -> ! {
+    fn abort_impl(val: i32) -> ! {
+        loop {
+            let _ = 1/(val as u32);
+        }
+    }
+    // Will panic due to division by zero.
+    abort_impl(0);
+}
 
 #[panic_handler]
-pub fn panic(_info: &PanicInfo) -> ! {
-    unsafe { core::intrinsics::abort() }
+pub fn panic(_info: &core::panic::PanicInfo) -> ! {
+    abort();
 }
-
-#[alloc_error_handler]
-pub extern "C" fn oom(_: Layout) -> ! {
-    unsafe {
-        core::intrinsics::abort();
-    }
-}
-
-/// This is only required in non `wasm32-unknown-unknown` targets.
-///
-/// Since ink! is targeted for the `wasm32-unknown-unknown` target we
-/// should maybe remove this.
-#[lang = "eh_personality"]
-extern "C" fn eh_personality() {}
